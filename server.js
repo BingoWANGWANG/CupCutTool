@@ -6,23 +6,19 @@ const fs = require('fs');
 const app = express();
 const PORT = 3000;
 
-// 输出图片尺寸
 const OUTPUT_WIDTH = 3300;
 const OUTPUT_HEIGHT = 4400;
 const ROW_COUNT = 4;
-const MARGIN = 80; // 边距
+const MARGIN = 80;
 
-// 确保上传目录存在
 const uploadDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// 静态文件服务
 app.use(express.static('public'));
 app.use('/uploads', express.static(uploadDir));
 
-// 文件上传配置
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, uploadDir);
@@ -38,125 +34,646 @@ const upload = multer({
     limits: { fileSize: 50 * 1024 * 1024 }
 });
 
-// 首页
 app.get('/', (req, res) => {
     res.send(`<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CupCutTool - 杯子拼图工具</title>
+    <title>CupCutTool</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        @font-face {
+            font-family: 'Space Grotesk';
+            src: local('Space Grotesk'), local('SpaceGrotesk-Regular');
+            font-weight: 400;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Space Grotesk';
+            src: local('Space Grotesk Medium'), local('SpaceGrotesk-Medium');
+            font-weight: 500;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Space Grotesk';
+            src: local('Space Grotesk Bold'), local('SpaceGrotesk-Bold');
+            font-weight: 600;
+            font-style: normal;
+        }
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
-        .container { max-width: 900px; margin: 0 auto; }
-        h1 { color: white; text-align: center; margin-bottom: 30px; font-size: 2.5em; }
-        .card { background: white; border-radius: 16px; padding: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
-        .info { background: #e8f4ff; border-radius: 8px; padding: 15px; margin-bottom: 20px; font-size: 14px; color: #333; }
-        .info strong { color: #667eea; }
-        .upload-area { border: 3px dashed #667eea; border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s; margin-bottom: 20px; }
-        .upload-area:hover { border-color: #764ba2; background: #f8f4ff; }
-        .upload-area p { color: #666; margin-top: 10px; }
-        .preview-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0; }
-        .preview-item { position: relative; border-radius: 8px; overflow: hidden; border: 2px solid #eee; }
-        .preview-item img { width: 100%; height: 200px; object-fit: cover; display: block; }
-        .preview-item .remove { position: absolute; top: 5px; right: 5px; background: rgba(255,0,0,0.8); color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 14px; }
-        .preview-item .label { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.7); color: white; padding: 5px; font-size: 12px; text-align: center; }
-        .btn { display: inline-block; padding: 12px 30px; border-radius: 8px; border: none; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s; margin: 5px; }
-        .btn-primary { background: #667eea; color: white; }
-        .btn-primary:hover { background: #764ba2; transform: translateY(-2px); }
-        .btn-secondary { background: #6c757d; color: white; }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .result { margin-top: 20px; text-align: center; }
-        .result img { max-width: 100%; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .loading { display: none; text-align: center; padding: 20px; }
-        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        input[type="file"] { display: none; }
+        
+        body {
+            font-family: 'Space Grotesk', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #f5f5f5;
+            color: #111;
+            min-height: 100vh;
+            position: relative;
+        }
+        
+        /* Dot Grid Background */
+        .dot-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: radial-gradient(circle, #ccc 1px, transparent 1px);
+            background-size: 24px 24px;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        /* Header */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(245, 245, 245, 0.9);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .header-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 2px;
+        }
+        
+        .menu-icon {
+            width: 24px;
+            height: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            cursor: pointer;
+        }
+        
+        .menu-icon span {
+            display: block;
+            height: 1px;
+            background: #111;
+        }
+        
+        .menu-icon span:nth-child(1) { width: 100%; }
+        .menu-icon span:nth-child(2) { width: 60%; }
+        .menu-icon span:nth-child(3) { width: 80%; }
+        
+        /* Main Content */
+        main {
+            position: relative;
+            z-index: 1;
+            padding-top: 100px;
+        }
+        
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 80px 40px 60px;
+        }
+        
+        h1 {
+            font-size: 48px;
+            font-weight: 500;
+            letter-spacing: -1px;
+            margin-bottom: 16px;
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            color: #666;
+            font-weight: 300;
+        }
+        
+        /* Upload Zone */
+        .upload-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 0 40px 80px;
+        }
+        
+        .drop-area {
+            border: 1px dashed #ccc;
+            border-radius: 16px;
+            padding: 60px 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255,255,255,0.8);
+        }
+        
+        .drop-area:hover {
+            border-color: #111;
+            background: #fff;
+        }
+        
+        .drop-area.dragover {
+            border-color: #111;
+            border-style: solid;
+            background: #fff;
+            transform: scale(1.02);
+        }
+        
+        .drop-icon {
+            font-size: 32px;
+            margin-bottom: 16px;
+            color: #999;
+        }
+        
+        .drop-text {
+            font-size: 15px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .drop-hint {
+            font-size: 13px;
+            color: #999;
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        /* Specs */
+        .specs {
+            display: flex;
+            justify-content: center;
+            gap: 48px;
+            padding: 40px;
+            border-top: 1px solid #e0e0e0;
+            border-bottom: 1px solid #e0e0e0;
+            background: rgba(255,255,255,0.5);
+        }
+        
+        .spec {
+            text-align: center;
+        }
+        
+        .spec-value {
+            font-size: 20px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        
+        .spec-label {
+            font-size: 11px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* Preview Section */
+        .preview-section {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 60px 40px;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+        
+        .section-title {
+            font-size: 12px;
+            color: #999;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        
+        .preview-count {
+            font-size: 12px;
+            color: #999;
+        }
+        
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .preview-item {
+            position: relative;
+            aspect-ratio: 1;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #fff;
+            border: 1px solid #e8e8e8;
+        }
+        
+        .preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .preview-item .remove {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 28px;
+            height: 28px;
+            background: rgba(0,0,0,0.7);
+            border-radius: 50%;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        
+        .preview-item:hover .remove {
+            opacity: 1;
+        }
+        
+        .preview-item .remove:hover {
+            background: #111;
+        }
+        
+        .preview-index {
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            font-size: 11px;
+            color: #999;
+            background: rgba(255,255,255,0.9);
+            padding: 4px 10px;
+            border-radius: 12px;
+        }
+        
+        .preview-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ddd;
+            font-size: 24px;
+        }
+        
+        /* Actions */
+        .actions {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+        }
+        
+        .btn {
+            padding: 14px 40px;
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+        
+        .btn-primary {
+            background: #111;
+            color: #fff;
+            border: 1px solid #111;
+        }
+        
+        .btn-primary:hover {
+            background: #333;
+        }
+        
+        .btn-primary:disabled {
+            background: #ccc;
+            border-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: #666;
+            border: 1px solid #ccc;
+        }
+        
+        .btn-secondary:hover {
+            border-color: #111;
+            color: #111;
+        }
+        
+        /* Loading */
+        .loading {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            padding: 60px;
+        }
+        
+        .loading.active {
+            display: flex;
+        }
+        
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 1px solid #e0e0e0;
+            border-top-color: #111;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 16px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            font-size: 13px;
+            color: #999;
+        }
+        
+        /* Result */
+        .result {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .result.active {
+            display: block;
+        }
+        
+        .result img {
+            max-width: 100%;
+            border-radius: 12px;
+            border: 1px solid #e8e8e8;
+            margin-bottom: 12px;
+        }
+        
+        .result-hint {
+            font-size: 12px;
+            color: #999;
+        }
+        
+        /* Floating Button */
+        .floating-btn {
+            position: fixed;
+            bottom: 32px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 14px 32px;
+            background: rgba(255,255,255,0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid #e0e0e0;
+            border-radius: 50px;
+            font-size: 12px;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 100;
+            display: none;
+        }
+        
+        .floating-btn:hover {
+            background: #fff;
+            border-color: #111;
+            color: #111;
+        }
+        
+        .floating-btn.visible {
+            display: block;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            h1 { font-size: 32px; }
+            .specs { flex-wrap: wrap; gap: 24px; }
+            .preview-grid { grid-template-columns: repeat(2, 1fr); }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>CupCutTool</h1>
-        <div class="card">
-            <div class="info">
-                <strong>使用方法：</strong> 上传4张图片，每张图片包含一行杯子（每行4个）。<br>
-                输出图片尺寸：<strong>3300 × 4400 px</strong>（4行，每行对应一张输入图片）。
+    <div class="dot-grid"></div>
+    
+    <header>
+        <div class="header-inner">
+            <div class="logo">CUPCUTTOOL</div>
+            <div class="menu-icon">
+                <span></span>
+                <span></span>
+                <span></span>
             </div>
-            <div class="upload-area" id="uploadArea">
-                <p style="font-size: 48px;">📁</p>
-                <p><strong>点击或拖拽上传图片</strong></p>
-                <p>请上传 <strong>4张</strong> 图片，每张对应一行杯子</p>
-                <p style="color:#888;font-size:12px;margin-top:5px;">支持 JPG, PNG</p>
+        </div>
+    </header>
+    
+    <main>
+        <section class="hero">
+            <h1>图片拼接工具</h1>
+            <p class="subtitle">将多张图片快速拼接为一张整齐的拼图</p>
+        </section>
+        
+        <div class="upload-container">
+            <div class="drop-area" id="dropArea">
+                <div class="drop-icon">+</div>
+                <p class="drop-text">点击或拖拽上传图片</p>
+                <p class="drop-hint">上传 4 张图片进行拼接</p>
                 <input type="file" id="fileInput" multiple accept="image/*">
             </div>
-            <div class="preview-grid" id="previewGrid"></div>
-            <div style="text-align: center;">
-                <button class="btn btn-primary" id="mergeBtn" disabled>🔗 生成拼图</button>
-                <button class="btn btn-secondary" id="clearBtn">🗑️ 清除全部</button>
-            </div>
-            <div class="loading" id="loading"><div class="spinner"></div><p style="margin-top: 15px;">处理中，请稍候...</p></div>
-            <div class="result" id="result"></div>
         </div>
-    </div>
+        
+        <div class="specs">
+            <div class="spec">
+                <div class="spec-value">3300</div>
+                <div class="spec-label">宽度 px</div>
+            </div>
+            <div class="spec">
+                <div class="spec-value">4400</div>
+                <div class="spec-label">高度 px</div>
+            </div>
+            <div class="spec">
+                <div class="spec-value">4</div>
+                <div class="spec-label">图片行数</div>
+            </div>
+            <div class="spec">
+                <div class="spec-value">PNG</div>
+                <div class="spec-label">输出格式</div>
+            </div>
+        </div>
+        
+        <section class="preview-section" id="previewSection" style="display:none;">
+            <div class="section-header">
+                <span class="section-title">已上传</span>
+                <span class="preview-count" id="previewCount">0 / 4</span>
+            </div>
+            <div class="preview-grid" id="previewGrid"></div>
+            <div class="actions">
+                <button class="btn btn-primary" id="mergeBtn" disabled>生成拼图</button>
+                <button class="btn btn-secondary" id="clearBtn">重新选择</button>
+            </div>
+        </section>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p class="loading-text">处理中...</p>
+        </div>
+        
+        <div class="result" id="result">
+            <img id="resultImage" src="" alt="Result">
+            <p class="result-hint">右键点击图片保存到本地</p>
+        </div>
+    </main>
+    
+    <button class="floating-btn" id="floatingBtn">↑ 生成拼图</button>
+    
     <script>
         let uploadedFiles = [];
-        const uploadArea = document.getElementById('uploadArea');
+        
+        const dropArea = document.getElementById('dropArea');
         const fileInput = document.getElementById('fileInput');
+        const previewSection = document.getElementById('previewSection');
         const previewGrid = document.getElementById('previewGrid');
+        const previewCount = document.getElementById('previewCount');
         const mergeBtn = document.getElementById('mergeBtn');
         const clearBtn = document.getElementById('clearBtn');
         const loading = document.getElementById('loading');
         const result = document.getElementById('result');
-
-        uploadArea.addEventListener('click', () => fileInput.click());
-        uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.style.borderColor = '#764ba2'; uploadArea.style.background = '#f8f4ff'; });
-        uploadArea.addEventListener('dragleave', () => { uploadArea.style.borderColor = '#667eea'; uploadArea.style.background = 'transparent'; });
-        uploadArea.addEventListener('drop', (e) => { e.preventDefault(); uploadArea.style.borderColor = '#667eea'; uploadArea.style.background = 'transparent'; handleFiles(e.dataTransfer.files); });
+        const resultImage = document.getElementById('resultImage');
+        const floatingBtn = document.getElementById('floatingBtn');
+        
+        dropArea.addEventListener('click', () => fileInput.click());
+        
+        dropArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropArea.classList.add('dragover');
+        });
+        
+        dropArea.addEventListener('dragleave', () => {
+            dropArea.classList.remove('dragover');
+        });
+        
+        dropArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropArea.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+        
         fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
-
+        
         function handleFiles(files) {
             const remainingSlots = 4 - uploadedFiles.length;
             const filesToAdd = Array.from(files).slice(0, remainingSlots);
-            filesToAdd.forEach(file => { if (uploadedFiles.length < 4 && file.type.startsWith('image/')) { uploadedFiles.push(file); } });
+            filesToAdd.forEach(file => {
+                if (uploadedFiles.length < 4 && file.type.startsWith('image/')) {
+                    uploadedFiles.push(file);
+                }
+            });
             updateUI();
         }
-
+        
         function updateUI() {
+            if (uploadedFiles.length > 0) {
+                previewSection.style.display = 'block';
+                floatingBtn.classList.add('visible');
+            } else {
+                previewSection.style.display = 'none';
+                floatingBtn.classList.remove('visible');
+            }
+            
+            previewCount.textContent = uploadedFiles.length + ' / 4';
+            
             previewGrid.innerHTML = '';
-            uploadedFiles.forEach((file, index) => {
+            
+            for (let i = 0; i < 4; i++) {
                 const div = document.createElement('div');
                 div.className = 'preview-item';
-                div.innerHTML = '<img src="' + URL.createObjectURL(file) + '" alt="Preview"><button class="remove" onclick="removeImage(' + index + ')">×</button><div class="label">第 ' + (index + 1) + ' 行</div>';
+                
+                if (uploadedFiles[i]) {
+                    div.innerHTML = '<img src="' + URL.createObjectURL(uploadedFiles[i]) + '" alt="Preview"><button class="remove" onclick="removeImage(' + i + ')">×</button><span class="preview-index">' + (i + 1) + '</span>';
+                } else {
+                    div.innerHTML = '<div class="preview-placeholder">' + (i + 1) + '</div>';
+                }
+                
                 previewGrid.appendChild(div);
-            });
+            }
+            
             mergeBtn.disabled = uploadedFiles.length !== 4;
+            floatingBtn.disabled = uploadedFiles.length !== 4;
         }
-
-        window.removeImage = function(index) { uploadedFiles.splice(index, 1); updateUI(); };
-
-        clearBtn.addEventListener('click', () => { uploadedFiles = []; updateUI(); result.innerHTML = ''; });
-
+        
+        window.removeImage = function(index) {
+            uploadedFiles.splice(index, 1);
+            updateUI();
+        };
+        
+        clearBtn.addEventListener('click', () => {
+            uploadedFiles = [];
+            result.classList.remove('active');
+            updateUI();
+        });
+        
+        floatingBtn.addEventListener('click', () => {
+            if (uploadedFiles.length === 4) {
+                mergeBtn.click();
+            }
+        });
+        
         mergeBtn.addEventListener('click', async () => {
             if (uploadedFiles.length !== 4) return;
-            loading.style.display = 'block';
-            result.innerHTML = '';
+            
+            loading.classList.add('active');
+            result.classList.remove('active');
+            floatingBtn.classList.remove('visible');
+            
             const formData = new FormData();
-            uploadedFiles.forEach((file, i) => { formData.append('images', file); });
+            uploadedFiles.forEach((file, i) => {
+                formData.append('images', file);
+            });
+            
             try {
-                const response = await fetch('/merge', { method: 'POST', body: formData });
+                const response = await fetch('/merge', {
+                    method: 'POST',
+                    body: formData
+                });
                 const data = await response.json();
-                if (data.success) { result.innerHTML = '<p><strong>拼图完成！</strong></p><img src="' + data.output + '" alt="Merged Result">'; }
-                else { result.innerHTML = '<p style="color:red;">错误: ' + data.error + '</p>'; }
-            } catch (err) { result.innerHTML = '<p style="color:red;">请求失败: ' + err.message + '</p>'; }
-            loading.style.display = 'none';
+                
+                if (data.success) {
+                    resultImage.src = data.output;
+                    result.classList.add('active');
+                    result.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } else {
+                    alert('错误: ' + data.error);
+                }
+            } catch (err) {
+                alert('请求失败: ' + err.message);
+            }
+            
+            loading.classList.remove('active');
+            floatingBtn.classList.add('visible');
         });
+        
+        updateUI();
     </script>
 </body>
 </html>`);
 });
 
-// 获取图片的内容边界（裁剪空白区域）
 function getContentBounds(ctx, img, threshold = 240) {
     const width = img.width;
     const height = img.height;
@@ -165,7 +682,6 @@ function getContentBounds(ctx, img, threshold = 240) {
     
     let minX = width, minY = height, maxX = 0, maxY = 0;
     
-    // 扫描非白色区域
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
             const i = (y * width + x) * 4;
@@ -173,7 +689,6 @@ function getContentBounds(ctx, img, threshold = 240) {
             const g = data[i + 1];
             const b = data[i + 2];
             
-            // 如果不是白色/近白色，认为是内容区域
             if (r < threshold || g < threshold || b < threshold) {
                 if (x < minX) minX = x;
                 if (x > maxX) maxX = x;
@@ -183,7 +698,6 @@ function getContentBounds(ctx, img, threshold = 240) {
         }
     }
     
-    // 添加一点边距
     const padding = 20;
     minX = Math.max(0, minX - padding);
     minY = Math.max(0, minY - padding);
@@ -193,7 +707,6 @@ function getContentBounds(ctx, img, threshold = 240) {
     return { minX, minY, maxX, maxY };
 }
 
-// 图片拼接接口
 app.post('/merge', upload.array('images'), async (req, res) => {
     try {
         if (!req.files || req.files.length !== 4) {
@@ -202,53 +715,39 @@ app.post('/merge', upload.array('images'), async (req, res) => {
 
         const { createCanvas, loadImage } = require('canvas');
         
-        // 创建输出画布
         const canvas = createCanvas(OUTPUT_WIDTH, OUTPUT_HEIGHT);
         const ctx = canvas.getContext('2d');
         
-        // 白色背景
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, OUTPUT_WIDTH, OUTPUT_HEIGHT);
         
-        // 可用宽度（左右留边距）
         const availableWidth = OUTPUT_WIDTH - (MARGIN * 2);
         const availableHeight = OUTPUT_HEIGHT - (MARGIN * 2);
         const rowHeight = availableHeight / ROW_COUNT;
         
-        // 处理每张图片
         for (let i = 0; i < req.files.length; i++) {
             const img = await loadImage(req.files[i].path);
             
-            // 创建临时画布获取边界
             const tempCanvas = createCanvas(img.width, img.height);
             const tempCtx = tempCanvas.getContext('2d');
             tempCtx.drawImage(img, 0, 0);
             
-            // 获取内容边界
             const bounds = getContentBounds(tempCtx, img);
-            const contentWidth = bounds.maxX - bounds.minX;
-            const contentHeight = bounds.maxY - bounds.minY;
+            const croppedWidth = bounds.maxX - bounds.minX;
+            const croppedHeight = bounds.maxY - bounds.minY;
             
-            // 裁剪后的内容区域
-            const croppedWidth = contentWidth;
-            const croppedHeight = contentHeight;
-            
-            // 计算缩放：让裁剪后的内容填充一行的宽度
             const scale = availableWidth / croppedWidth;
             const scaledWidth = croppedWidth * scale;
             const scaledHeight = croppedHeight * scale;
             
-            // 如果缩放后高度超过一行，进行调整
             let finalWidth, finalHeight, offsetX, offsetY;
             
             if (scaledHeight <= rowHeight) {
-                // 高度OK，宽度铺满，垂直居中
                 finalWidth = scaledWidth;
                 finalHeight = scaledHeight;
                 offsetX = MARGIN;
                 offsetY = MARGIN + i * rowHeight + (rowHeight - scaledHeight) / 2;
             } else {
-                // 高度超出，用高度填充
                 const scaleByHeight = rowHeight / croppedHeight;
                 finalWidth = croppedWidth * scaleByHeight;
                 finalHeight = rowHeight;
@@ -256,18 +755,15 @@ app.post('/merge', upload.array('images'), async (req, res) => {
                 offsetY = MARGIN + i * rowHeight;
             }
             
-            // 绘制裁剪后的内容
             ctx.drawImage(
                 img,
-                bounds.minX, bounds.minY, croppedWidth, croppedHeight,  // 源区域
-                offsetX, offsetY, finalWidth, finalHeight                // 目标区域
+                bounds.minX, bounds.minY, croppedWidth, croppedHeight,
+                offsetX, offsetY, finalWidth, finalHeight
             );
             
-            // 清理上传的文件
             fs.unlinkSync(req.files[i].path);
         }
         
-        // 保存输出文件
         const outputName = 'cup-merged-' + Date.now() + '.png';
         const outputPath = path.join(uploadDir, outputName);
         const buffer = canvas.toBuffer('image/png');
