@@ -623,6 +623,10 @@ app.get('/', (req, res) => {
                     <span class="spec-label">格式</span>
                     <span class="spec-value">PNG</span>
                 </div>
+                <div class="spec-row">
+                    <span class="spec-label">裁剪顶部</span>
+                    <input type="number" id="cropTopInput" value="0.4" step="0.01" min="0" max="1" style="width:60px">
+                </div>
             </div>
             
             <div class="preview-list" id="previewList"></div>
@@ -776,7 +780,7 @@ app.get('/', (req, res) => {
         };
         
         // Crop Adjustment
-        let cropSettings = { x: 0, y: 0, scale: 100 };
+        let cropSettings = { x: 0, y: 0, scale: 100, top: 0.4 };
         const cropSection = document.getElementById('cropAdjustSection');
         const cropPreview = document.getElementById('cropPreview');
         const cropXSlider = document.getElementById('cropX');
@@ -785,6 +789,11 @@ app.get('/', (req, res) => {
         const cropXVal = document.getElementById('cropXVal');
         const cropYVal = document.getElementById('cropYVal');
         const cropScaleVal = document.getElementById('cropScaleVal');
+        const cropTopInput = document.getElementById('cropTopInput');
+        
+        cropTopInput.addEventListener('change', (e) => {
+            cropSettings.top = parseFloat(e.target.value) || 0.4;
+        });
         
         function updateCropPreview() {
             if (uploadedFiles.length === 0) {
@@ -871,6 +880,7 @@ app.get('/', (req, res) => {
             formData.append('cropX', cropSettings.x);
             formData.append('cropY', cropSettings.y);
             formData.append('cropScale', cropSettings.scale);
+            formData.append('cropTop', cropSettings.top);
             
             fetch('/batch-merge', {
                 method: 'POST',
@@ -924,6 +934,7 @@ app.get('/', (req, res) => {
             formData.append('cropX', cropSettings.x);
             formData.append('cropY', cropSettings.y);
             formData.append('cropScale', cropSettings.scale);
+            formData.append('cropTop', cropSettings.top);
             
             try {
                 const response = await fetch('/merge', {
@@ -1002,7 +1013,7 @@ async function getModel() {
 }
 
 // 固定裁剪参数
-const CROP_TOP = 0.40;  // 裁剪顶部 40% 高度以下
+let CROP_TOP = 0.40;  // 裁剪顶部 40% 高度以下
 const CROP_SIDES = 0.10; // 左右各留 10% 边距
 
 app.post('/merge', upload.fields([{ name: 'images', maxCount: 4 }]), async (req, res) => {
@@ -1018,8 +1029,10 @@ app.post('/merge', upload.fields([{ name: 'images', maxCount: 4 }]), async (req,
         const cropX = parseInt(req.body.cropX) || 0;
         const cropY = parseInt(req.body.cropY) || 0;
         const cropScale = (parseInt(req.body.cropScale) || 100) / 100;
+        const cropTop = parseFloat(req.body.cropTop) || 0.4;
+        CROP_TOP = cropTop;
         
-        console.log('裁剪参数:', { cropX, cropY, cropScale });
+        console.log('裁剪参数:', { cropX, cropY, cropScale, cropTop });
         
         const canvas = createCanvas(OUTPUT_WIDTH, OUTPUT_HEIGHT);
         const ctx = canvas.getContext('2d');
@@ -1102,6 +1115,8 @@ app.post('/batch-merge', upload.array('images', 100), async (req, res) => {
         const cropX = parseInt(req.body.cropX) || 0;
         const cropY = parseInt(req.body.cropY) || 0;
         const cropScale = (parseInt(req.body.cropScale) || 100) / 100;
+        const cropTop = parseFloat(req.body.cropTop) || 0.4;
+        CROP_TOP = cropTop;
         
         const results = [];
         const groupCount = Math.ceil(files.length / 4);
