@@ -8,6 +8,12 @@
 - **分支命名**: 中文命名（如 `main`、`批处理`）
 - **当前最新版本**: v1.3.0
 
+## 文档目录
+
+- [产品用户文档](docs/PRODUCT.md) - 适合用户阅读的产品说明
+- [AI 开发文档](docs/DEVELOPMENT.md) - 适合 AI/开发者阅读的技术文档
+- [CHANGELOG](CHANGELOG.md) - 版本更新历史
+
 ## 版本号规范
 
 格式: `vX.Y.Z`
