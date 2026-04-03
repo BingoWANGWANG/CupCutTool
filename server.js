@@ -605,9 +605,9 @@ app.get('/', (req, res) => {
                 <p class="drop-text">上传图片</p>
                 <p class="drop-hint">拖拽或点击 · 4 张</p>
                 <input type="file" id="fileInput" multiple accept="image/*">
-                <input type="file" id="folderInput" webkitdirectory multiple style="display:none">
             </div>
             
+            <input type="file" id="folderInput" webkitdirectory multiple style="display:none">
             <button class="btn btn-folder" id="folderBtn">📁 上传文件夹</button>
             
             <div class="specs">
