@@ -715,7 +715,10 @@ app.get('/', (req, res) => {
         const downloadAllBtn = document.getElementById('downloadAllBtn');
         
         // 文件夹上传
-        folderBtn.addEventListener('click', () => folderInput.click());
+        folderBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            folderInput.click();
+        });
         folderInput.addEventListener('change', (e) => handleFolderUpload(e.target.files));
         
         dropArea.addEventListener('click', () => fileInput.click());
@@ -793,6 +796,10 @@ app.get('/', (req, res) => {
         
         cropTopInput.addEventListener('change', (e) => {
             cropSettings.top = parseFloat(e.target.value) || 0.4;
+            // 如果已有图片，自动重新生成
+            if (uploadedFiles.length === 4) {
+                mergeBtn.click();
+            }
         });
         
         function updateCropPreview() {
