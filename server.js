@@ -9,7 +9,7 @@ const PORT = 3000;
 const OUTPUT_WIDTH = 3300;
 const OUTPUT_HEIGHT = 4400;
 const ROW_COUNT = 4;
-const MARGIN = 60;
+const MARGIN = 0;
 
 const uploadDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadDir)) {
@@ -422,6 +422,102 @@ app.get('/', (req, res) => {
             .left-panel { width: 100%; }
             .result-area { min-height: 300px; }
         }
+        
+        /* Crop Adjustment Section */
+        .crop-adjust-section {
+            padding: 14px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            margin-top: 10px;
+        }
+        
+        .crop-title {
+            font-size: 11px;
+            color: #999;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+        
+        .crop-preview-wrap {
+            background: #f0f0f0;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        
+        .crop-preview {
+            width: 100%;
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .crop-preview img {
+            max-width: 100%;
+            max-height: 100%;
+        }
+        
+        .crop-box {
+            position: absolute;
+            border: 2px dashed #007AFF;
+            background: rgba(0,122,255,0.1);
+        }
+        
+        .crop-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .crop-slider-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .crop-slider-row label {
+            font-size: 11px;
+            color: #666;
+            width: 50px;
+        }
+        
+        .crop-slider-row input[type="range"] {
+            flex: 1;
+            height: 4px;
+            -webkit-appearance: none;
+            background: #ddd;
+            border-radius: 2px;
+        }
+        
+        .crop-slider-row input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            background: #007AFF;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        .crop-slider-row span {
+            font-size: 11px;
+            color: #999;
+            width: 40px;
+            text-align: right;
+        }
+        
+        body.dark .crop-adjust-section {
+            background: rgba(30,30,30,0.8);
+            border-color: #333;
+        }
+        
+        body.dark .crop-title { color: #aaa; }
+        body.dark .crop-preview-wrap { background: #1a1a1a; }
+        body.dark .crop-slider-row label { color: #aaa; }
+        body.dark .crop-slider-row input[type="range"] { background: #444; }
     </style>
 </head>
 <body>
@@ -455,6 +551,32 @@ app.get('/', (req, res) => {
             </div>
             
             <div class="preview-list" id="previewList"></div>
+            
+            <!-- 裁剪调整区域 -->
+            <div class="crop-adjust-section" id="cropAdjustSection" style="display:none;">
+                <div class="crop-title">裁剪调整</div>
+                <div class="crop-preview-wrap">
+                    <div class="crop-preview" id="cropPreview"></div>
+                </div>
+                <div class="crop-controls">
+                    <div class="crop-slider-row">
+                        <label>X偏移</label>
+                        <input type="range" id="cropX" min="-500" max="500" value="0">
+                        <span id="cropXVal">0</span>
+                    </div>
+                    <div class="crop-slider-row">
+                        <label>Y偏移</label>
+                        <input type="range" id="cropY" min="-500" max="500" value="0">
+                        <span id="cropYVal">0</span>
+                    </div>
+                    <div class="crop-slider-row">
+                        <label>缩放</label>
+                        <input type="range" id="cropScale" min="50" max="200" value="100">
+                        <span id="cropScaleVal">100%</span>
+                    </div>
+                    <button class="btn btn-secondary" id="applyCropBtn">应用裁剪</button>
+                </div>
+            </div>
             
             <div class="actions">
                 <button class="btn btn-primary" id="mergeBtn" disabled>生成拼图</button>
@@ -546,12 +668,71 @@ app.get('/', (req, res) => {
             }
             
             mergeBtn.disabled = uploadedFiles.length !== 4;
+            
+            // Show/hide crop section
+            if (uploadedFiles.length > 0) {
+                showCropSection();
+            } else {
+                cropSection.style.display = 'none';
+            }
         }
         
         window.removeImage = function(index) {
             uploadedFiles.splice(index, 1);
             updateUI();
         };
+        
+        // Crop Adjustment
+        let cropSettings = { x: 0, y: 0, scale: 100 };
+        const cropSection = document.getElementById('cropAdjustSection');
+        const cropPreview = document.getElementById('cropPreview');
+        const cropXSlider = document.getElementById('cropX');
+        const cropYSlider = document.getElementById('cropY');
+        const cropScaleSlider = document.getElementById('cropScale');
+        const cropXVal = document.getElementById('cropXVal');
+        const cropYVal = document.getElementById('cropYVal');
+        const cropScaleVal = document.getElementById('cropScaleVal');
+        
+        function updateCropPreview() {
+            if (uploadedFiles.length === 0) {
+                cropPreview.innerHTML = '<span style="color:#999;font-size:12px">先上传图片</span>';
+                return;
+            }
+            
+            const file = uploadedFiles[0];
+            const url = URL.createObjectURL(file);
+            const scale = cropSettings.scale / 100;
+            const left = 50 - scale * 50 + cropSettings.x / 10;
+            const top = 50 - scale * 50 + cropSettings.y / 10;
+            const width = scale * 100;
+            const height = scale * 100;
+            
+            cropPreview.innerHTML = '<img src="' + url + '" style="max-width:100%;max-height:100%">' +
+                '<div class="crop-box" style="left:' + left + '%;top:' + top + '%;width:' + width + '%;height:' + height + '%"></div>';
+        }
+        
+        cropXSlider.addEventListener('input', (e) => {
+            cropSettings.x = parseInt(e.target.value);
+            cropXVal.textContent = cropSettings.x;
+            updateCropPreview();
+        });
+        
+        cropYSlider.addEventListener('input', (e) => {
+            cropSettings.y = parseInt(e.target.value);
+            cropYVal.textContent = cropSettings.y;
+            updateCropPreview();
+        });
+        
+        cropScaleSlider.addEventListener('input', (e) => {
+            cropSettings.scale = parseInt(e.target.value);
+            cropScaleVal.textContent = cropSettings.scale + '%';
+            updateCropPreview();
+        });
+        
+        function showCropSection() {
+            cropSection.style.display = 'block';
+            updateCropPreview();
+        }
         
         clearBtn.addEventListener('click', () => {
             uploadedFiles = [];
@@ -572,6 +753,11 @@ app.get('/', (req, res) => {
             uploadedFiles.forEach((file, i) => {
                 formData.append('images', file);
             });
+            
+            // 添加裁剪参数
+            formData.append('cropX', cropSettings.x);
+            formData.append('cropY', cropSettings.y);
+            formData.append('cropScale', cropSettings.scale);
             
             try {
                 const response = await fetch('/merge', {
@@ -635,13 +821,39 @@ function getContentBounds(ctx, img, threshold = 240) {
     return { minX, minY, maxX, maxY };
 }
 
-app.post('/merge', upload.array('images'), async (req, res) => {
+// ONNX 模型加载（单例）
+let ortSession = null;
+async function getModel() {
+    if (!ortSession) {
+        console.log('加载 ONNX 模型中...');
+        const { InferenceSession } = require('onnxruntime-node');
+        ortSession = await InferenceSession.create(
+            require('path').join(__dirname, 'public', 'model', 'exp-2.onnx')
+        );
+        console.log('ONNX 模型加载完成');
+    }
+    return ortSession;
+}
+
+// 固定裁剪参数
+const CROP_TOP = 0.40;  // 裁剪顶部 40% 高度以下
+const CROP_SIDES = 0.10; // 左右各留 10% 边距
+
+app.post('/merge', upload.fields([{ name: 'images', maxCount: 4 }]), async (req, res) => {
     try {
-        if (!req.files || req.files.length !== 4) {
+        const files = req.files['images'];
+        if (!files || files.length !== 4) {
             return res.json({ success: false, error: '请上传 4 张图片' });
         }
 
         const { createCanvas, loadImage } = require('canvas');
+        
+        // 获取裁剪参数
+        const cropX = parseInt(req.body.cropX) || 0;
+        const cropY = parseInt(req.body.cropY) || 0;
+        const cropScale = (parseInt(req.body.cropScale) || 100) / 100;
+        
+        console.log('裁剪参数:', { cropX, cropY, cropScale });
         
         const canvas = createCanvas(OUTPUT_WIDTH, OUTPUT_HEIGHT);
         const ctx = canvas.getContext('2d');
@@ -653,48 +865,51 @@ app.post('/merge', upload.array('images'), async (req, res) => {
         const availableHeight = OUTPUT_HEIGHT - (MARGIN * 2);
         const rowHeight = availableHeight / ROW_COUNT;
         
-        for (let i = 0; i < req.files.length; i++) {
-            const img = await loadImage(req.files[i].path);
+        for (let i = 0; i < files.length; i++) {
+            const img = await loadImage(files[i].path);
             
-            const tempCanvas = createCanvas(img.width, img.height);
-            const tempCtx = tempCanvas.getContext('2d');
-            tempCtx.drawImage(img, 0, 0);
+            // 固定裁剪：从 cupTop 开始到图片底部
+            const srcX = Math.floor(img.width * CROP_SIDES);
+            const srcY = Math.floor(img.height * CROP_TOP);
+            const srcW = img.width - srcX * 2;
+            const srcH = img.height - srcY;
             
-            const bounds = getContentBounds(tempCtx, img);
-            const croppedWidth = bounds.maxX - bounds.minX;
-            const croppedHeight = bounds.maxY - bounds.minY;
+            const cx = srcX;
+            const cy = srcY;
+            const cw = srcW;
+            const ch = srcH;
             
-            const scale = availableWidth / croppedWidth;
-            const scaledWidth = croppedWidth * scale;
-            const scaledHeight = croppedHeight * scale;
+            console.log(`图片${i+1}: 裁剪区域 [${cx.toFixed(0)}, ${cy.toFixed(0)}, ${cw.toFixed(0)}x${ch.toFixed(0)}]`);
             
-            let finalWidth, finalHeight, offsetX, offsetY;
+            // 宽度撑满 3300px，高度等比缩放
+            const scaleByWidth = availableWidth / cw;
+            const scaledHeight = ch * scaleByWidth;
+            
+            let finalWidth = availableWidth;
+            let finalHeight = scaledHeight;
+            let offsetX = MARGIN;
+            let offsetY;
             
             if (scaledHeight <= rowHeight) {
-                finalWidth = scaledWidth;
-                finalHeight = scaledHeight;
-                offsetX = MARGIN;
+                // 高度不够，垂直居中
                 offsetY = MARGIN + i * rowHeight + (rowHeight - scaledHeight) / 2;
             } else {
-                const scaleByHeight = rowHeight / croppedHeight;
-                finalWidth = croppedWidth * scaleByHeight;
-                finalHeight = rowHeight;
-                offsetX = MARGIN + (availableWidth - finalWidth) / 2;
+                // 高度超出，直接从顶部开始裁
                 offsetY = MARGIN + i * rowHeight;
             }
             
             ctx.drawImage(
                 img,
-                bounds.minX, bounds.minY, croppedWidth, croppedHeight,
+                cx, cy, cw, ch,
                 offsetX, offsetY, finalWidth, finalHeight
             );
             
-            fs.unlinkSync(req.files[i].path);
+            fs.unlinkSync(files[i].path);
         }
         
-        const outputName = 'cup-merged-' + Date.now() + '.png';
+        const outputName = 'cup-merged-' + Date.now() + '.jpg';
         const outputPath = path.join(uploadDir, outputName);
-        const buffer = canvas.toBuffer('image/png');
+        const buffer = canvas.toBuffer('image/jpeg', { quality: 0.92 });
         fs.writeFileSync(outputPath, buffer);
         
         res.json({ success: true, output: '/uploads/' + outputName });
