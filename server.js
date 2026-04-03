@@ -697,6 +697,7 @@ app.get('/', (req, res) => {
     
     <script>
         let uploadedFiles = [];
+        let folderFiles = [];
         
         const dropArea = document.getElementById('dropArea');
         const fileInput = document.getElementById('fileInput');
@@ -799,6 +800,9 @@ app.get('/', (req, res) => {
             // 如果已有图片，自动重新生成
             if (uploadedFiles.length === 4) {
                 mergeBtn.click();
+            } else if (folderFiles.length > 0) {
+                // 重新执行批量处理
+                handleFolderUpload(folderFiles);
             }
         });
         
@@ -872,6 +876,9 @@ app.get('/', (req, res) => {
             while (sortedFiles.length < totalImages) {
                 sortedFiles.push(sortedFiles[sortedFiles.length % 4]);
             }
+            
+            // 保存文件引用用于后续重新生成
+            folderFiles = sortedFiles;
             
             loading.classList.add('active');
             resultPlaceholder.style.display = 'none';
