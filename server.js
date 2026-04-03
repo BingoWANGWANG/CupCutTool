@@ -300,6 +300,78 @@ app.get('/', (req, res) => {
         
         .btn-secondary:hover { border-color: #111; color: #111; }
         
+        .btn-folder {
+            background: #f5f5f5;
+            color: #333;
+            border: 1px solid #ddd;
+            margin-top: 8px;
+            font-size: 11px;
+            padding: 8px 16px;
+        }
+        
+        .btn-folder:hover { background: #eee; }
+        
+        /* Batch Results */
+        .batch-results {
+            display: none;
+            width: 100%;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #eee;
+        }
+        
+        .batch-results.active { display: block; }
+        
+        .batch-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .batch-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .batch-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 12px;
+        }
+        
+        .batch-item {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #fff;
+        }
+        
+        .batch-item img {
+            width: 100%;
+            display: block;
+        }
+        
+        .batch-item-label {
+            font-size: 10px;
+            color: #999;
+            text-align: center;
+            padding: 4px;
+            background: #fafafa;
+        }
+        
+        .batch-item .btn-download {
+            display: block;
+            text-align: center;
+            padding: 6px;
+            background: #f5f5f5;
+            color: #333;
+            text-decoration: none;
+            font-size: 10px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
         /* Result Area */
         .result-area {
             flex: 1;
@@ -533,7 +605,10 @@ app.get('/', (req, res) => {
                 <p class="drop-text">上传图片</p>
                 <p class="drop-hint">拖拽或点击 · 4 张</p>
                 <input type="file" id="fileInput" multiple accept="image/*">
+                <input type="file" id="folderInput" webkitdirectory multiple style="display:none">
             </div>
+            
+            <button class="btn btn-folder" id="folderBtn">📁 上传文件夹</button>
             
             <div class="specs">
                 <div class="spec-row">
@@ -603,6 +678,15 @@ app.get('/', (req, res) => {
                         <img id="resultImage" src="" alt="Result">
                     </div>
                 </div>
+                
+                <!-- 批量结果区域 -->
+                <div class="batch-results" id="batchResults">
+                    <div class="batch-header">
+                        <span class="batch-title">批量结果</span>
+                        <button class="btn btn-primary" id="downloadAllBtn">下载全部</button>
+                    </div>
+                    <div class="batch-grid" id="batchGrid"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -612,6 +696,8 @@ app.get('/', (req, res) => {
         
         const dropArea = document.getElementById('dropArea');
         const fileInput = document.getElementById('fileInput');
+        const folderInput = document.getElementById('folderInput');
+        const folderBtn = document.getElementById('folderBtn');
         const previewList = document.getElementById('previewList');
         const mergeBtn = document.getElementById('mergeBtn');
         const clearBtn = document.getElementById('clearBtn');
@@ -620,6 +706,13 @@ app.get('/', (req, res) => {
         const resultPlaceholder = document.getElementById('resultPlaceholder');
         const resultContent = document.getElementById('resultContent');
         const resultImage = document.getElementById('resultImage');
+        const batchResults = document.getElementById('batchResults');
+        const batchGrid = document.getElementById('batchGrid');
+        const downloadAllBtn = document.getElementById('downloadAllBtn');
+        
+        // 文件夹上传
+        folderBtn.addEventListener('click', () => folderInput.click());
+        folderInput.addEventListener('change', (e) => handleFolderUpload(e.target.files));
         
         dropArea.addEventListener('click', () => fileInput.click());
         
@@ -741,6 +834,79 @@ app.get('/', (req, res) => {
             resultPlaceholder.style.display = 'block';
             updateUI();
         });
+        
+        // 文件夹批量上传
+        function handleFolderUpload(files) {
+            if (files.length === 0) return;
+            
+            // 按名称排序
+            const sortedFiles = Array.from(files)
+                .filter(f => f.type.startsWith('image/'))
+                .sort((a, b) => a.name.localeCompare(b.name));
+            
+            if (sortedFiles.length < 4) {
+                alert('文件夹中至少需要4张图片');
+                return;
+            }
+            
+            const groupCount = Math.ceil(sortedFiles.length / 4);
+            const totalImages = groupCount * 4;
+            
+            // 填充到4的倍数
+            while (sortedFiles.length < totalImages) {
+                sortedFiles.push(sortedFiles[sortedFiles.length % 4]);
+            }
+            
+            loading.classList.add('active');
+            resultPlaceholder.style.display = 'none';
+            batchResults.classList.add('active');
+            batchGrid.innerHTML = '<p style="color:#666">正在处理...</p>';
+            
+            const formData = new FormData();
+            sortedFiles.forEach((file, i) => {
+                formData.append('images', file);
+            });
+            
+            // 添加裁剪参数
+            formData.append('cropX', cropSettings.x);
+            formData.append('cropY', cropSettings.y);
+            formData.append('cropScale', cropSettings.scale);
+            
+            fetch('/batch-merge', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                loading.classList.remove('active');
+                if (data.success) {
+                    window.batchOutputs = data.outputs.map(o => o.output);
+                    
+                    batchGrid.innerHTML = '';
+                    data.outputs.forEach((item, i) => {
+                        const div = document.createElement('div');
+                        div.className = 'batch-item';
+                        div.innerHTML = '<img src="' + item.output + '" alt="Batch ' + item.index + '"><div class="batch-item-label">第 ' + item.index + ' 组</div><a class="btn-download" href="' + item.output + '" download>下载</a>';
+                        batchGrid.appendChild(div);
+                    });
+                    
+                    downloadAllBtn.onclick = () => {
+                        window.batchOutputs.forEach((src, i) => {
+                            const a = document.createElement('a');
+                            a.href = src;
+                            a.download = 'cup-batch-' + (i + 1) + '.jpg';
+                            a.click();
+                        });
+                    };
+                } else {
+                    batchGrid.innerHTML = '<p style="color:red">处理失败: ' + data.error + '</p>';
+                }
+            })
+            .catch(err => {
+                loading.classList.remove('active');
+                batchGrid.innerHTML = '<p style="color:red">错误: ' + err.message + '</p>';
+            });
+        }
         
         mergeBtn.addEventListener('click', async () => {
             if (uploadedFiles.length !== 4) return;
@@ -915,6 +1081,87 @@ app.post('/merge', upload.fields([{ name: 'images', maxCount: 4 }]), async (req,
         res.json({ success: true, output: '/uploads/' + outputName });
     } catch (err) {
         console.error('Merge error:', err);
+        res.json({ success: false, error: err.message });
+    }
+});
+
+// 批量合并接口
+app.post('/batch-merge', upload.array('images', 100), async (req, res) => {
+    try {
+        const files = req.files;
+        if (!files || files.length === 0) {
+            return res.json({ success: false, error: '请上传图片' });
+        }
+
+        const { createCanvas, loadImage } = require('canvas');
+        
+        // 按名称排序
+        files.sort((a, b) => a.originalname.localeCompare(b.originalname));
+        
+        // 获取裁剪参数
+        const cropX = parseInt(req.body.cropX) || 0;
+        const cropY = parseInt(req.body.cropY) || 0;
+        const cropScale = (parseInt(req.body.cropScale) || 100) / 100;
+        
+        const results = [];
+        const groupCount = Math.ceil(files.length / 4);
+        
+        for (let g = 0; g < groupCount; g++) {
+            const groupFiles = files.slice(g * 4, g * 4 + 4);
+            
+            const canvas = createCanvas(OUTPUT_WIDTH, OUTPUT_HEIGHT);
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, OUTPUT_WIDTH, OUTPUT_HEIGHT);
+            
+            const availableWidth = OUTPUT_WIDTH - (MARGIN * 2);
+            const availableHeight = OUTPUT_HEIGHT - (MARGIN * 2);
+            const rowHeight = availableHeight / ROW_COUNT;
+            
+            for (let i = 0; i < groupFiles.length; i++) {
+                const img = await loadImage(groupFiles[i].path);
+                
+                const srcX = Math.floor(img.width * CROP_SIDES);
+                const srcY = Math.floor(img.height * CROP_TOP);
+                const srcW = img.width - srcX * 2;
+                const srcH = img.height - srcY;
+                
+                const scaleByWidth = availableWidth / srcW;
+                const scaledHeight = srcH * scaleByWidth;
+                
+                let offsetX = MARGIN;
+                let offsetY;
+                
+                if (scaledHeight <= rowHeight) {
+                    offsetY = MARGIN + i * rowHeight + (rowHeight - scaledHeight) / 2;
+                } else {
+                    offsetY = MARGIN + i * rowHeight;
+                }
+                
+                ctx.drawImage(
+                    img,
+                    srcX, srcY, srcW, srcH,
+                    offsetX, offsetY, availableWidth, scaledHeight
+                );
+                
+                fs.unlinkSync(groupFiles[i].path);
+            }
+            
+            const outputName = 'cup-batch-' + g + '-' + Date.now() + '.jpg';
+            const outputPath = path.join(uploadDir, outputName);
+            const buffer = canvas.toBuffer('image/jpeg', { quality: 0.92 });
+            fs.writeFileSync(outputPath, buffer);
+            
+            results.push({
+                index: g + 1,
+                output: '/uploads/' + outputName
+            });
+        }
+        
+        res.json({ success: true, outputs: results });
+    } catch (err) {
+        console.error('Batch merge error:', err);
         res.json({ success: false, error: err.message });
     }
 });
