@@ -307,6 +307,9 @@ app.get('/', (req, res) => {
             margin-top: 8px;
             font-size: 11px;
             padding: 8px 16px;
+            flex: none;
+            width: auto;
+            align-self: flex-start;
         }
         
         .btn-folder:hover { background: #eee; }
