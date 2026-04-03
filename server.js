@@ -9,7 +9,7 @@ const PORT = 3000;
 const OUTPUT_WIDTH = 3300;
 const OUTPUT_HEIGHT = 4400;
 const ROW_COUNT = 4;
-const MARGIN = 80;
+const MARGIN = 60;
 
 const uploadDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadDir)) {
@@ -57,13 +57,6 @@ app.get('/', (req, res) => {
             font-weight: 500;
             font-style: normal;
         }
-        @font-face {
-            font-family: 'Space Grotesk';
-            src: local('Space Grotesk Bold'), local('SpaceGrotesk-Bold');
-            font-weight: 600;
-            font-style: normal;
-        }
-    <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         
         body {
@@ -71,52 +64,56 @@ app.get('/', (req, res) => {
             background-color: #f5f5f5;
             color: #111;
             min-height: 100vh;
-            position: relative;
+            padding: 16px;
         }
         
-        /* Dot Grid Background */
-        .dot-grid {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-image: radial-gradient(circle, #ccc 1px, transparent 1px);
-            background-size: 24px 24px;
-            pointer-events: none;
-            z-index: 0;
+        .container {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        /* Left Panel */
+        .left-panel {
+            width: 280px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        /* Right Panel */
+        .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
         
         /* Header */
         header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 100;
-            background: rgba(245, 245, 245, 0.9);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid #e0e0e0;
-        }
-        
-        .header-inner {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px 40px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 10px 14px;
+            background: rgba(255,255,255,0.9);
+            backdrop-filter: blur(20px);
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
         }
         
         .logo {
-            font-size: 14px;
+            font-size: 11px;
             font-weight: 500;
             letter-spacing: 2px;
         }
         
         .menu-icon {
-            width: 24px;
-            height: 16px;
+            width: 16px;
+            height: 10px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -133,43 +130,11 @@ app.get('/', (req, res) => {
         .menu-icon span:nth-child(2) { width: 60%; }
         .menu-icon span:nth-child(3) { width: 80%; }
         
-        /* Main Content */
-        main {
-            position: relative;
-            z-index: 1;
-            padding-top: 100px;
-        }
-        
-        /* Hero Section */
-        .hero {
-            text-align: center;
-            padding: 80px 40px 60px;
-        }
-        
-        h1 {
-            font-size: 48px;
-            font-weight: 500;
-            letter-spacing: -1px;
-            margin-bottom: 16px;
-        }
-        
-        .subtitle {
-            font-size: 16px;
-            color: #666;
-            font-weight: 300;
-        }
-        
         /* Upload Zone */
-        .upload-container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 0 40px 80px;
-        }
-        
         .drop-area {
             border: 1px dashed #ccc;
-            border-radius: 16px;
-            padding: 60px 40px;
+            border-radius: 10px;
+            padding: 20px 14px;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -185,118 +150,100 @@ app.get('/', (req, res) => {
             border-color: #111;
             border-style: solid;
             background: #fff;
-            transform: scale(1.02);
         }
         
         .drop-icon {
-            font-size: 32px;
-            margin-bottom: 16px;
+            font-size: 20px;
+            margin-bottom: 6px;
             color: #999;
         }
         
         .drop-text {
-            font-size: 15px;
+            font-size: 12px;
             color: #333;
-            margin-bottom: 8px;
+            margin-bottom: 2px;
         }
         
         .drop-hint {
-            font-size: 13px;
-            color: #999;
+            font-size: 10px;
+            color: #aaa;
         }
         
-        input[type="file"] {
-            display: none;
-        }
+        input[type="file"] { display: none; }
         
         /* Specs */
         .specs {
-            display: flex;
-            justify-content: center;
-            gap: 48px;
-            padding: 40px;
-            border-top: 1px solid #e0e0e0;
-            border-bottom: 1px solid #e0e0e0;
+            padding: 10px 14px;
             background: rgba(255,255,255,0.5);
+            border-radius: 8px;
         }
         
-        .spec {
-            text-align: center;
-        }
-        
-        .spec-value {
-            font-size: 20px;
-            font-weight: 500;
+        .spec-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: #888;
             margin-bottom: 4px;
         }
         
-        .spec-label {
-            font-size: 11px;
-            color: #999;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
+        .spec-row:last-child { margin-bottom: 0; }
         
-        /* Preview Section */
-        .preview-section {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 60px 40px;
-        }
+        .spec-label { color: #999; }
+        .spec-value { color: #333; font-weight: 500; }
         
-        .section-header {
+        /* Preview List */
+        .preview-list {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 32px;
-        }
-        
-        .section-title {
-            font-size: 12px;
-            color: #999;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-        
-        .preview-count {
-            font-size: 12px;
-            color: #999;
-        }
-        
-        .preview-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
-            margin-bottom: 40px;
+            flex-direction: column;
+            gap: 8px;
         }
         
         .preview-item {
             position: relative;
-            aspect-ratio: 1;
-            border-radius: 12px;
+            height: 60px;
+            border-radius: 6px;
             overflow: hidden;
             background: #fff;
             border: 1px solid #e8e8e8;
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            gap: 10px;
         }
         
         .preview-item img {
-            width: 100%;
             height: 100%;
+            width: 80px;
             object-fit: cover;
+            border-radius: 4px;
+        }
+        
+        .preview-item .info {
+            flex: 1;
+            font-size: 11px;
+            color: #666;
+        }
+        
+        .preview-item .index {
+            font-size: 10px;
+            color: #999;
+            background: #f5f5f5;
+            padding: 2px 8px;
+            border-radius: 10px;
         }
         
         .preview-item .remove {
             position: absolute;
-            top: 8px;
-            right: 8px;
-            width: 28px;
-            height: 28px;
-            background: rgba(0,0,0,0.7);
+            top: 4px;
+            right: 4px;
+            width: 18px;
+            height: 18px;
+            background: rgba(0,0,0,0.6);
             border-radius: 50%;
             color: #fff;
             border: none;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -304,48 +251,33 @@ app.get('/', (req, res) => {
             transition: opacity 0.2s;
         }
         
-        .preview-item:hover .remove {
-            opacity: 1;
-        }
-        
-        .preview-item .remove:hover {
-            background: #111;
-        }
-        
-        .preview-index {
-            position: absolute;
-            bottom: 8px;
-            left: 8px;
-            font-size: 11px;
-            color: #999;
-            background: rgba(255,255,255,0.9);
-            padding: 4px 10px;
-            border-radius: 12px;
-        }
+        .preview-item:hover .remove { opacity: 1; }
         
         .preview-placeholder {
-            width: 100%;
-            height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #ddd;
-            font-size: 24px;
+            width: 36px;
+            height: 36px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            color: #ccc;
+            font-size: 12px;
         }
         
         /* Actions */
         .actions {
             display: flex;
-            gap: 16px;
-            justify-content: center;
+            gap: 8px;
+            margin-top: auto;
         }
         
         .btn {
-            padding: 14px 40px;
+            flex: 1;
+            padding: 10px 16px;
             border-radius: 50px;
-            font-size: 13px;
+            font-size: 11px;
             font-weight: 500;
-            letter-spacing: 0.5px;
             cursor: pointer;
             transition: all 0.3s ease;
             font-family: inherit;
@@ -357,15 +289,8 @@ app.get('/', (req, res) => {
             border: 1px solid #111;
         }
         
-        .btn-primary:hover {
-            background: #333;
-        }
-        
-        .btn-primary:disabled {
-            background: #ccc;
-            border-color: #ccc;
-            cursor: not-allowed;
-        }
+        .btn-primary:hover { background: #333; }
+        .btn-primary:disabled { background: #ccc; border-color: #ccc; cursor: not-allowed; }
         
         .btn-secondary {
             background: transparent;
@@ -373,189 +298,206 @@ app.get('/', (req, res) => {
             border: 1px solid #ccc;
         }
         
-        .btn-secondary:hover {
-            border-color: #111;
-            color: #111;
+        .btn-secondary:hover { border-color: #111; color: #111; }
+        
+        /* Result Area */
+        .result-area {
+            flex: 1;
+            border: 2px dashed #ccc;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.5);
+            position: relative;
+            min-height: 400px;
+        }
+        
+        .result-placeholder {
+            text-align: center;
+        }
+        
+        .result-placeholder-icon {
+            font-size: 48px;
+            color: #ddd;
+            margin-bottom: 12px;
+        }
+        
+        .result-placeholder-text {
+            font-size: 12px;
+            color: #999;
+        }
+        
+        .result-content {
+            display: none;
+            width: 100%;
+            height: 100%;
+            padding: 16px;
+            flex-direction: column;
+        }
+        
+        .result-content.active { display: flex; }
+        
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .result-title {
+            font-size: 11px;
+            color: #999;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        
+        .result-hint {
+            font-size: 10px;
+            color: #999;
+        }
+        
+        .btn-download {
+            padding: 6px 16px;
+            background: #111;
+            color: #fff;
+            border: none;
+            border-radius: 50px;
+            font-size: 11px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-download:hover { background: #333; }
+        
+        .result-image-wrap {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: auto;
+        }
+        
+        .result-image-wrap img {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
         }
         
         /* Loading */
         .loading {
             display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             flex-direction: column;
             align-items: center;
-            padding: 60px;
         }
         
-        .loading.active {
-            display: flex;
-        }
+        .loading.active { display: flex; }
         
         .spinner {
-            width: 32px;
-            height: 32px;
+            width: 24px;
+            height: 24px;
             border: 1px solid #e0e0e0;
             border-top-color: #111;
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin-bottom: 16px;
+            margin-bottom: 8px;
         }
         
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
         
         .loading-text {
-            font-size: 13px;
+            font-size: 11px;
             color: #999;
         }
         
-        /* Result */
-        .result {
-            display: none;
-            text-align: center;
-            padding: 40px;
-        }
-        
-        .result.active {
-            display: block;
-        }
-        
-        .result img {
-            max-width: 100%;
-            border-radius: 12px;
-            border: 1px solid #e8e8e8;
-            margin-bottom: 12px;
-        }
-        
-        .result-hint {
-            font-size: 12px;
-            color: #999;
-        }
-        
-        /* Floating Button */
-        .floating-btn {
-            position: fixed;
-            bottom: 32px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 14px 32px;
-            background: rgba(255,255,255,0.9);
-            backdrop-filter: blur(10px);
-            border: 1px solid #e0e0e0;
-            border-radius: 50px;
-            font-size: 12px;
-            color: #666;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            z-index: 100;
-            display: none;
-        }
-        
-        .floating-btn:hover {
-            background: #fff;
-            border-color: #111;
-            color: #111;
-        }
-        
-        .floating-btn.visible {
-            display: block;
-        }
-        
-        /* Responsive */
         @media (max-width: 768px) {
-            h1 { font-size: 32px; }
-            .specs { flex-wrap: wrap; gap: 24px; }
-            .preview-grid { grid-template-columns: repeat(2, 1fr); }
+            .container { flex-direction: column; }
+            .left-panel { width: 100%; }
+            .result-area { min-height: 300px; }
         }
     </style>
 </head>
 <body>
-    <div class="dot-grid"></div>
-    
-    <header>
-        <div class="header-inner">
-            <div class="logo">CUPCUTTOOL</div>
-            <div class="menu-icon">
-                <span></span>
-                <span></span>
-                <span></span>
-            </div>
-        </div>
-    </header>
-    
-    <main>
-        <section class="hero">
-            <h1>图片拼接工具</h1>
-            <p class="subtitle">将多张图片快速拼接为一张整齐的拼图</p>
-        </section>
-        
-        <div class="upload-container">
+    <div class="container">
+        <div class="left-panel">
+            <header>
+                <div class="logo">CUPCUTTOOL</div>
+                <div class="menu-icon"><span></span><span></span><span></span></div>
+            </header>
+            
             <div class="drop-area" id="dropArea">
                 <div class="drop-icon">+</div>
-                <p class="drop-text">点击或拖拽上传图片</p>
-                <p class="drop-hint">上传 4 张图片进行拼接</p>
+                <p class="drop-text">上传图片</p>
+                <p class="drop-hint">拖拽或点击 · 4 张</p>
                 <input type="file" id="fileInput" multiple accept="image/*">
             </div>
-        </div>
-        
-        <div class="specs">
-            <div class="spec">
-                <div class="spec-value">3300</div>
-                <div class="spec-label">宽度 px</div>
+            
+            <div class="specs">
+                <div class="spec-row">
+                    <span class="spec-label">尺寸</span>
+                    <span class="spec-value">3300 × 4400 px</span>
+                </div>
+                <div class="spec-row">
+                    <span class="spec-label">布局</span>
+                    <span class="spec-value">4 行</span>
+                </div>
+                <div class="spec-row">
+                    <span class="spec-label">格式</span>
+                    <span class="spec-value">PNG</span>
+                </div>
             </div>
-            <div class="spec">
-                <div class="spec-value">4400</div>
-                <div class="spec-label">高度 px</div>
-            </div>
-            <div class="spec">
-                <div class="spec-value">4</div>
-                <div class="spec-label">图片行数</div>
-            </div>
-            <div class="spec">
-                <div class="spec-value">PNG</div>
-                <div class="spec-label">输出格式</div>
-            </div>
-        </div>
-        
-        <section class="preview-section" id="previewSection" style="display:none;">
-            <div class="section-header">
-                <span class="section-title">已上传</span>
-                <span class="preview-count" id="previewCount">0 / 4</span>
-            </div>
-            <div class="preview-grid" id="previewGrid"></div>
+            
+            <div class="preview-list" id="previewList"></div>
+            
             <div class="actions">
                 <button class="btn btn-primary" id="mergeBtn" disabled>生成拼图</button>
-                <button class="btn btn-secondary" id="clearBtn">重新选择</button>
+                <button class="btn btn-secondary" id="clearBtn">清除</button>
             </div>
-        </section>
-        
-        <div class="loading" id="loading">
-            <div class="spinner"></div>
-            <p class="loading-text">处理中...</p>
         </div>
         
-        <div class="result" id="result">
-            <img id="resultImage" src="" alt="Result">
-            <p class="result-hint">右键点击图片保存到本地</p>
+        <div class="right-panel">
+            <div class="result-area" id="resultArea">
+                <div class="result-placeholder" id="resultPlaceholder">
+                    <div class="result-placeholder-icon">⬜</div>
+                    <div class="result-placeholder-text">生成的拼图将显示在这里</div>
+                </div>
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p class="loading-text">处理中...</p>
+                </div>
+                <div class="result-content" id="resultContent">
+                    <div class="result-header">
+                        <span class="result-title">生成结果</span>
+                        <a class="btn-download" id="downloadBtn" download>下载图片</a>
+                    </div>
+                    <div class="result-image-wrap">
+                        <img id="resultImage" src="" alt="Result">
+                    </div>
+                </div>
+            </div>
         </div>
-    </main>
-    
-    <button class="floating-btn" id="floatingBtn">↑ 生成拼图</button>
+    </div>
     
     <script>
         let uploadedFiles = [];
         
         const dropArea = document.getElementById('dropArea');
         const fileInput = document.getElementById('fileInput');
-        const previewSection = document.getElementById('previewSection');
-        const previewGrid = document.getElementById('previewGrid');
-        const previewCount = document.getElementById('previewCount');
+        const previewList = document.getElementById('previewList');
         const mergeBtn = document.getElementById('mergeBtn');
         const clearBtn = document.getElementById('clearBtn');
         const loading = document.getElementById('loading');
-        const result = document.getElementById('result');
+        const resultArea = document.getElementById('resultArea');
+        const resultPlaceholder = document.getElementById('resultPlaceholder');
+        const resultContent = document.getElementById('resultContent');
         const resultImage = document.getElementById('resultImage');
-        const floatingBtn = document.getElementById('floatingBtn');
         
         dropArea.addEventListener('click', () => fileInput.click());
         
@@ -588,33 +530,22 @@ app.get('/', (req, res) => {
         }
         
         function updateUI() {
-            if (uploadedFiles.length > 0) {
-                previewSection.style.display = 'block';
-                floatingBtn.classList.add('visible');
-            } else {
-                previewSection.style.display = 'none';
-                floatingBtn.classList.remove('visible');
-            }
-            
-            previewCount.textContent = uploadedFiles.length + ' / 4';
-            
-            previewGrid.innerHTML = '';
+            previewList.innerHTML = '';
             
             for (let i = 0; i < 4; i++) {
                 const div = document.createElement('div');
                 div.className = 'preview-item';
                 
                 if (uploadedFiles[i]) {
-                    div.innerHTML = '<img src="' + URL.createObjectURL(uploadedFiles[i]) + '" alt="Preview"><button class="remove" onclick="removeImage(' + i + ')">×</button><span class="preview-index">' + (i + 1) + '</span>';
+                    div.innerHTML = '<img src="' + URL.createObjectURL(uploadedFiles[i]) + '" alt=""><span class="info">第 ' + (i + 1) + ' 张</span><span class="index">' + (i + 1) + '</span><button class="remove" onclick="removeImage(' + i + ')">×</button>';
                 } else {
-                    div.innerHTML = '<div class="preview-placeholder">' + (i + 1) + '</div>';
+                    div.innerHTML = '<div class="preview-placeholder">' + (i + 1) + '</div><span class="info">待上传</span>';
                 }
                 
-                previewGrid.appendChild(div);
+                previewList.appendChild(div);
             }
             
             mergeBtn.disabled = uploadedFiles.length !== 4;
-            floatingBtn.disabled = uploadedFiles.length !== 4;
         }
         
         window.removeImage = function(index) {
@@ -624,22 +555,18 @@ app.get('/', (req, res) => {
         
         clearBtn.addEventListener('click', () => {
             uploadedFiles = [];
-            result.classList.remove('active');
+            resultImage.src = '';
+            resultContent.classList.remove('active');
+            resultPlaceholder.style.display = 'block';
             updateUI();
-        });
-        
-        floatingBtn.addEventListener('click', () => {
-            if (uploadedFiles.length === 4) {
-                mergeBtn.click();
-            }
         });
         
         mergeBtn.addEventListener('click', async () => {
             if (uploadedFiles.length !== 4) return;
             
             loading.classList.add('active');
-            result.classList.remove('active');
-            floatingBtn.classList.remove('visible');
+            resultPlaceholder.style.display = 'none';
+            resultContent.classList.remove('active');
             
             const formData = new FormData();
             uploadedFiles.forEach((file, i) => {
@@ -655,17 +582,18 @@ app.get('/', (req, res) => {
                 
                 if (data.success) {
                     resultImage.src = data.output;
-                    result.classList.add('active');
-                    result.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    document.getElementById('downloadBtn').href = data.output;
+                    resultContent.classList.add('active');
                 } else {
                     alert('错误: ' + data.error);
+                    resultPlaceholder.style.display = 'block';
                 }
             } catch (err) {
                 alert('请求失败: ' + err.message);
+                resultPlaceholder.style.display = 'block';
             }
             
             loading.classList.remove('active');
-            floatingBtn.classList.add('visible');
         });
         
         updateUI();
