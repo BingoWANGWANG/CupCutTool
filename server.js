@@ -16,6 +16,11 @@ if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
 
+// 启动时自动清理上传目录
+fs.readdirSync(uploadDir).forEach(file => {
+    fs.unlinkSync(path.join(uploadDir, file));
+});
+
 app.use(express.static('public'));
 app.use('/uploads', express.static(uploadDir));
 
@@ -43,7 +48,7 @@ app.get('/', (req, res) => {
     <title>CupCutTool</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=Noto+Sans+SC:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         @font-face {
             font-family: 'Space Grotesk';
@@ -203,6 +208,8 @@ app.get('/', (req, res) => {
             display: flex;
             flex-direction: column;
             gap: 8px;
+            text-align: left;
+            margin-top: 12px;
         }
         
         .preview-item {
@@ -627,6 +634,7 @@ app.get('/', (req, res) => {
                 <p class="drop-text">上传图片</p>
                 <p class="drop-hint">拖拽或点击 · 4 张</p>
                 <input type="file" id="fileInput" multiple accept="image/*">
+                <div class="preview-list" id="previewList"></div>
             </div>
             
             <input type="file" id="folderInput" webkitdirectory multiple style="display:none">
@@ -652,8 +660,6 @@ app.get('/', (req, res) => {
                 <div class="spec-hint">控制裁剪起始位置：值越大，裁剪越靠上，保留越多顶部画面</div>
                 <button class="btn btn-secondary" id="confirmCropBtn" style="margin-top:8px;width:100%;">确认剪裁</button>
             </div>
-
-            <div class="preview-list" id="previewList"></div>
 
             <div class="actions">
                 <button class="btn btn-primary" id="mergeBtn" disabled>生成拼图</button>
