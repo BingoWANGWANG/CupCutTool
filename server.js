@@ -181,12 +181,19 @@ app.get('/', (req, res) => {
         .spec-row {
             display: flex;
             justify-content: space-between;
-            font-size: 10px;
+            font-size: 12px;
             color: #888;
             margin-bottom: 4px;
         }
         
         .spec-row:last-child { margin-bottom: 0; }
+
+        .spec-hint {
+            font-size: 11px;
+            color: #999;
+            margin-top: 2px;
+            line-height: 1.4;
+        }
         
         .spec-label { color: #999; }
         .spec-value { color: #333; font-weight: 500; }
@@ -269,7 +276,6 @@ app.get('/', (req, res) => {
         .actions {
             display: flex;
             gap: 8px;
-            margin-top: auto;
         }
         
         .btn {
@@ -305,10 +311,11 @@ app.get('/', (req, res) => {
             color: #333;
             border: 1px solid #ddd;
             margin-top: 8px;
-            font-size: 11px;
-            padding: 8px 16px;
+            font-size: 12px;
+            padding: 12px 16px;
+            width: 100%;
+            border-radius: 8px;
             flex: none;
-            width: auto;
             align-self: flex-start;
         }
         
@@ -318,9 +325,9 @@ app.get('/', (req, res) => {
         .batch-results {
             display: none;
             width: 100%;
-            margin-top: 16px;
-            padding-top: 16px;
-            border-top: 1px solid #eee;
+            padding: 16px;
+            border-bottom: 1px solid #eee;
+            background: #fff;
         }
         
         .batch-results.active { display: block; }
@@ -330,17 +337,25 @@ app.get('/', (req, res) => {
             justify-content: space-between;
             align-items: center;
             margin-bottom: 12px;
+            gap: 16px;
         }
         
         .batch-title {
             font-size: 14px;
             font-weight: 600;
             color: #333;
+            flex: none;
+        }
+
+        .batch-header .btn {
+            flex: none;
+            width: auto;
+            padding: 8px 20px;
         }
         
         .batch-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 12px;
         }
         
@@ -387,6 +402,10 @@ app.get('/', (req, res) => {
             background: rgba(255,255,255,0.5);
             position: relative;
             min-height: 400px;
+        }
+
+        .batch-results.active ~ .result-area {
+            border: none;
         }
         
         .result-placeholder {
@@ -630,10 +649,17 @@ app.get('/', (req, res) => {
                     <span class="spec-label">裁剪顶部</span>
                     <input type="number" id="cropTopInput" value="0.4" step="0.01" min="0" max="1" style="width:60px">
                 </div>
+                <div class="spec-hint">控制裁剪起始位置：值越大，裁剪越靠上，保留越多顶部画面</div>
+                <button class="btn btn-secondary" id="confirmCropBtn" style="margin-top:8px;width:100%;">确认剪裁</button>
             </div>
-            
+
             <div class="preview-list" id="previewList"></div>
-            
+
+            <div class="actions">
+                <button class="btn btn-primary" id="mergeBtn" disabled>生成拼图</button>
+                <button class="btn btn-secondary" id="clearBtn">清除</button>
+            </div>
+
             <!-- 裁剪调整区域 -->
             <div class="crop-adjust-section" id="cropAdjustSection" style="display:none;">
                 <div class="crop-title">裁剪调整</div>
@@ -656,17 +682,20 @@ app.get('/', (req, res) => {
                         <input type="range" id="cropScale" min="50" max="200" value="100">
                         <span id="cropScaleVal">100%</span>
                     </div>
-                    <button class="btn btn-secondary" id="applyCropBtn">应用裁剪</button>
+                    <button class="btn btn-secondary" id="applyCropBtn">确认剪裁</button>
                 </div>
-            </div>
-            
-            <div class="actions">
-                <button class="btn btn-primary" id="mergeBtn" disabled>生成拼图</button>
-                <button class="btn btn-secondary" id="clearBtn">清除</button>
             </div>
         </div>
         
         <div class="right-panel">
+            <!-- 批量结果区域 -->
+            <div class="batch-results" id="batchResults">
+                <div class="batch-header">
+                    <span class="batch-title">批量结果</span>
+                    <button class="btn btn-primary" id="downloadAllBtn">下载全部</button>
+                </div>
+                <div class="batch-grid" id="batchGrid"></div>
+            </div>
             <div class="result-area" id="resultArea">
                 <div class="result-placeholder" id="resultPlaceholder">
                     <div class="result-placeholder-icon">⬜</div>
@@ -684,15 +713,6 @@ app.get('/', (req, res) => {
                     <div class="result-image-wrap">
                         <img id="resultImage" src="" alt="Result">
                     </div>
-                </div>
-                
-                <!-- 批量结果区域 -->
-                <div class="batch-results" id="batchResults">
-                    <div class="batch-header">
-                        <span class="batch-title">批量结果</span>
-                        <button class="btn btn-primary" id="downloadAllBtn">下载全部</button>
-                    </div>
-                    <div class="batch-grid" id="batchGrid"></div>
                 </div>
             </div>
         </div>
@@ -800,11 +820,12 @@ app.get('/', (req, res) => {
         
         cropTopInput.addEventListener('change', (e) => {
             cropSettings.top = parseFloat(e.target.value) || 0.4;
-            // 如果已有图片，自动重新生成
+        });
+
+        document.getElementById('confirmCropBtn').addEventListener('click', () => {
             if (uploadedFiles.length === 4) {
                 mergeBtn.click();
             } else if (folderFiles.length > 0) {
-                // 重新执行批量处理
                 handleFolderUpload(folderFiles);
             }
         });
@@ -883,10 +904,9 @@ app.get('/', (req, res) => {
             // 保存文件引用用于后续重新生成
             folderFiles = sortedFiles;
             
-            loading.classList.add('active');
             resultPlaceholder.style.display = 'none';
             batchResults.classList.add('active');
-            batchGrid.innerHTML = '<p style="color:#666">正在处理...</p>';
+            batchGrid.innerHTML = '<p style="color:#666;font-size:13px;text-align:center;padding:40px 0;">正在处理...</p>';
             
             const formData = new FormData();
             sortedFiles.forEach((file, i) => {
